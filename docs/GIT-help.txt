@@ -1,0 +1,38 @@
+
+https://expose.pl/czym-jest-git-i-dlaczego-warto-znac-systemy-kontroli-wersji-kodu/    <- krótki opis
+
+https://git-scm.com/book/pl/v2/Pierwsze-kroki-Wprowadzenie-do-kontroli-wersji          <- obszerny opis
+
+-- konfiguracja 
+
+git config --global user.name "Nazwa Użytkownika"
+git config --global user.email "email@uzytkowni.ka"
+git config -l                   -> lista ustawień
+
+-- tworzenie repozytorium
+git init  						-> inicjalizacja nowego repozytorium git (robimy to w root folderze) 
+
+-- zarządzanie gałęziami
+
+git branch						-> lista gałęzi
+git branch -M 'nazwa'   		-> zmiana nazwy brancha
+git checkout 'nazwa_brancha' 	-> przełączanie się pomiędzy gałęziami (lub commitami)
+git checkout -     				-> przełącza do poprzedniego brancha 
+git checkout -b branch1   		-> tworzy gałąź 'branch1' i przełącza się na nią
+git merge <nazwa_brancha_do_zmergowania>
+git branch -d <nazwa>           -> usun branch
+
+-- zarządzanie zmianami
+
+git status  					-> status zmian
+git log  						-> lista commitów (odpowiednik punktu przywracania w systemie) 
+git add .   					-> dodaj wszystkie zmiany
+git add <nazwa_pliku>  			-> dodaj zmiany w pliku do indeksu (git status pokaże plik na zielono)
+git commit -m "opis_zmian"    	-> zacommituj zmiany dodane do indeksu 
+
+-- remote origin 
+
+git remote show origin          -> pokazuje źródło remote
+git clone <link_do_remote>      -> ściągnij repo z remote
+git pull                        -> zaktualizuj z remote
+git push						-> wyślij skomitowane zmiany do remote
