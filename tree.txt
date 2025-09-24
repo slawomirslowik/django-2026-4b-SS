@@ -1,0 +1,23 @@
+Folder PATH listing
+Volume serial number is C0C6-A6A2
+C:.
+|   .gitignore
+|   LICENSE
+|   README.md
+|   tree.txt
+|   
++---docs
+|       GIT-help.txt
+|       PrNT_2025_Django-InstalacjaFrameworka-startProjektu.doc
+|       PrNT_2025_Django-przygotowanie_˜rodowiska.docx
+|       
+\---mysite
+    |   manage.py
+    |   
+    \---mysite
+            asgi.py
+            settings.py
+            urls.py
+            wsgi.py
+            __init__.py
+            
