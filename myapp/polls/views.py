@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views import generic
 
-from .models import Choice, Question, Category
+from .models import Choice, Question, Category, Comment
 
 class IndexView(generic.ListView):
     template_name = "polls/index.html"
@@ -57,3 +57,26 @@ def vote(request, question_id):
         # with POST data. This prevents data from being posted twice if a
         # user hits the Back button.
         return HttpResponseRedirect(reverse("polls:results", args=(question.id,)))
+
+def add_comment(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    
+    if request.method == 'POST':
+        author_name = request.POST.get('author_name', '').strip()
+        comment_text = request.POST.get('comment_text', '').strip()
+        
+        if author_name and comment_text:
+            Comment.objects.create(
+                question=question,
+                author_name=author_name,
+                comment_text=comment_text
+            )
+            return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+        else:
+            error_message = "Please fill in all fields."
+            return render(request, 'polls/results.html', {
+                'question': question,
+                'error_message': error_message,
+            })
+    
+    return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))

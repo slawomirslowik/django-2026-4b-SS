@@ -1,0 +1,247 @@
+================================================================================
+ZADANIE DLA UCZNIÓW: Dodanie komentarzy do ankiet
+================================================================================
+
+CEL ZADANIA
+-----------
+Dodaj możliwość dodawania komentarzy do pytań w aplikacji ankiet. Użytkownicy 
+będą mogli dodawać komentarze z imieniem i treścią, a komentarze będą 
+wyświetlane pod wynikami głosowania.
+
+================================================================================
+KROK 1: Stworzenie modelu Comment
+================================================================================
+
+Plik: polls/models.py
+
+Dodaj nowy model Comment na końcu pliku (po klasie Choice):
+
+```python
+class Comment(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='comments')
+    author_name = models.CharField(max_length=100)
+    comment_text = models.TextField()
+    created_date = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_date']
+    
+    def __str__(self):
+        return f'Comment by {self.author_name} on {self.question.question_text}'
+```
+
+Wyjaśnienie pól:
+- question: relacja ForeignKey do pytania
+- author_name: imię autora komentarza
+- comment_text: treść komentarza
+- created_date: data utworzenia (automatyczna)
+- ordering: sortowanie od najnowszych
+
+================================================================================
+KROK 2: Migracja bazy danych
+================================================================================
+
+Wykonaj w terminalu:
+
+```powershell
+py manage.py makemigrations
+py manage.py migrate
+```
+
+================================================================================
+KROK 3: Rejestracja w panelu admina
+================================================================================
+
+Plik: polls/admin.py
+
+Dodaj Comment do importu i listy registered_models:
+
+```python
+from django.contrib import admin
+from .models import Question, Choice, Category, Comment
+
+registered_models = [Question, Choice, Category, Comment]
+
+admin.site.register(registered_models)
+```
+
+================================================================================
+KROK 4: Stworzenie widoku do dodawania komentarzy
+================================================================================
+
+Plik: polls/views.py
+
+Dodaj nowy widok na końcu pliku:
+
+```python
+from .models import Choice, Question, Category, Comment
+
+def add_comment(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    
+    if request.method == 'POST':
+        author_name = request.POST.get('author_name', '').strip()
+        comment_text = request.POST.get('comment_text', '').strip()
+        
+        if author_name and comment_text:
+            Comment.objects.create(
+                question=question,
+                author_name=author_name,
+                comment_text=comment_text
+            )
+            return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+        else:
+            error_message = "Please fill in all fields."
+            return render(request, 'polls/results.html', {
+                'question': question,
+                'error_message': error_message,
+            })
+    
+    return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+```
+
+================================================================================
+KROK 5: Dodanie URL dla komentarzy
+================================================================================
+
+Plik: polls/urls.py
+
+Dodaj nowy wzorzec URL:
+
+```python
+from django.urls import path
+from . import views
+
+app_name = "polls"
+
+urlpatterns = [
+    path("", views.IndexView.as_view(), name="index"),
+    path("<int:pk>/", views.DetailView.as_view(), name="detail"),
+    path("<int:pk>/results/", views.ResultsView.as_view(), name="results"),
+    path("<int:question_id>/vote/", views.vote, name="vote"),
+    path("<int:question_id>/comment/", views.add_comment, name="add_comment"),
+]
+```
+
+================================================================================
+KROK 6: Modyfikacja szablonu results.html
+================================================================================
+
+Plik: polls/templates/polls/results.html
+
+Zamień całą zawartość pliku na:
+
+```html
+<h1>{{ question.question_text }}</h1>
+
+<h2>Results:</h2>
+<ul>
+{% for choice in question.choice_set.all %}
+    <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'polls:detail' question.id %}">Vote again?</a>
+
+<hr>
+
+<h2>Comments ({{ question.comments.count }})</h2>
+
+<!-- Formularz dodawania komentarza -->
+<form action="{% url 'polls:add_comment' question.id %}" method="post">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Add a comment:</legend>
+        {% if error_message %}<p style="color: red;"><strong>{{ error_message }}</strong></p>{% endif %}
+        
+        <label for="author_name">Your name:</label><br>
+        <input type="text" name="author_name" id="author_name" maxlength="100" required><br><br>
+        
+        <label for="comment_text">Comment:</label><br>
+        <textarea name="comment_text" id="comment_text" rows="4" cols="50" required></textarea><br><br>
+        
+        <input type="submit" value="Add Comment">
+    </fieldset>
+</form>
+
+<hr>
+
+<!-- Wyświetlanie komentarzy -->
+{% if question.comments.all %}
+    <h3>All Comments:</h3>
+    {% for comment in question.comments.all %}
+        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <strong>{{ comment.author_name }}</strong>
+            <small style="color: #666;">({{ comment.created_date|date:"Y-m-d H:i" }})</small>
+            <p>{{ comment.comment_text }}</p>
+        </div>
+    {% endfor %}
+{% else %}
+    <p><em>No comments yet. Be the first to comment!</em></p>
+{% endif %}
+```
+
+================================================================================
+KROK 7: Testowanie
+================================================================================
+
+1. Uruchom serwer: 
+   py manage.py runserver 8080
+
+2. Przejdź do strony głównej i zagłosuj w jakiejś ankiecie
+
+3. Na stronie wyników dodaj komentarz
+
+4. Sprawdź, czy komentarz się wyświetla
+
+5. Dodaj kilka komentarzy i zobacz, jak są sortowane (najnowsze na górze)
+
+6. Sprawdź komentarze w panelu admina:
+   http://localhost:8080/admin
+
+================================================================================
+ZADANIA DODATKOWE DLA UCZNIÓW
+================================================================================
+
+1. Dodaj walidację długości komentarza (minimum 10 znaków)
+   Wskazówka: sprawdź len(comment_text) w widoku
+
+2. Dodaj możliwość edycji i usuwania komentarzy w panelu admina
+   Wskazówka: stwórz klasę CommentAdmin z list_display
+
+3. Dodaj licznik komentarzy na stronie głównej (index.html) przy każdym pytaniu
+   Wskazówka: użyj {{ question.comments.count }}
+
+4. Dodaj możliwość sortowania komentarzy (najnowsze/najstarsze)
+   Wskazówka: dodaj parametr GET ?sort=oldest
+
+5. Dodaj pole email (opcjonalne) do modelu Comment
+   Wskazówka: models.EmailField(blank=True)
+
+6. Wyświetl 3 najnowsze komentarze na stronie detail.html
+   Wskazówka: użyj {% for comment in question.comments.all|slice:":3" %}
+
+================================================================================
+PODSUMOWANIE ZMIAN
+================================================================================
+
+Pliki do modyfikacji:
+- polls/models.py          (dodanie modelu Comment)
+- polls/admin.py           (rejestracja Comment)
+- polls/views.py           (dodanie widoku add_comment, import Comment)
+- polls/urls.py            (dodanie URL dla add_comment)
+- polls/templates/polls/results.html  (formularz i wyświetlanie komentarzy)
+
+Nowe polecenia:
+- py manage.py makemigrations
+- py manage.py migrate
+
+Nowe funkcjonalności:
+- Dodawanie komentarzy do pytań
+- Wyświetlanie listy komentarzy
+- Sortowanie komentarzy od najnowszych
+- Licznik komentarzy
+
+================================================================================
+Powodzenia! 
+================================================================================

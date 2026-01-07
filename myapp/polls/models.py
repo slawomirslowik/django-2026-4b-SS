@@ -31,5 +31,17 @@ class Choice(models.Model):
     def __str__(self):
         return self.choice_text
 
+class Comment(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='comments')
+    author_name = models.CharField(max_length=100)
+    comment_text = models.TextField()
+    created_date = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_date']
+    
+    def __str__(self):
+        return f'Comment by {self.author_name} on {self.question.question_text}'
+
 
 

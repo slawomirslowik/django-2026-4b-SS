@@ -1,5 +1,6 @@
 <h1>{{ question.question_text }}</h1>
 
+<h2>Results:</h2>
 <ul>
 {% for choice in question.choice_set.all %}
     <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>
@@ -7,3 +8,40 @@
 </ul>
 
 <a href="{% url 'polls:detail' question.id %}">Vote again?</a>
+
+<hr>
+
+<h2>Comments ({{ question.comments.count }})</h2>
+
+<!-- Formularz dodawania komentarza -->
+<form action="{% url 'polls:add_comment' question.id %}" method="post">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Add a comment:</legend>
+        {% if error_message %}<p style="color: red;"><strong>{{ error_message }}</strong></p>{% endif %}
+        
+        <label for="author_name">Your name:</label><br>
+        <input type="text" name="author_name" id="author_name" maxlength="100" required><br><br>
+        
+        <label for="comment_text">Comment:</label><br>
+        <textarea name="comment_text" id="comment_text" rows="4" cols="50" required></textarea><br><br>
+        
+        <input type="submit" value="Add Comment">
+    </fieldset>
+</form>
+
+<hr>
+
+<!-- Wyświetlanie komentarzy -->
+{% if question.comments.all %}
+    <h3>All Comments:</h3>
+    {% for comment in question.comments.all %}
+        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">
+            <strong>{{ comment.author_name }}</strong>
+            <small style="color: #666;">({{ comment.created_date|date:"Y-m-d H:i" }})</small>
+            <p>{{ comment.comment_text }}</p>
+        </div>
+    {% endfor %}
+{% else %}
+    <p><em>No comments yet. Be the first to comment!</em></p>
+{% endif %}
