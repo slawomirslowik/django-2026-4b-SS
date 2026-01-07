@@ -4,15 +4,29 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views import generic
 
-from .models import Choice, Question
+from .models import Choice, Question, Category
 
 class IndexView(generic.ListView):
     template_name = "polls/index.html"
     context_object_name = "latest_question_list"
 
     def get_queryset(self):
-        """Return the last five published questions."""
-        return Question.objects.order_by("-pub_date")[:5]
+        """Return questions, optionally filtered by category."""
+        queryset = Question.objects.order_by("-pub_date")[:5]
+        
+        category_id = self.request.GET.get('category')
+        if category_id:
+            queryset = Question.objects.filter(
+                categories__id=category_id
+            ).order_by("-pub_date")[:5]
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        context['selected_category'] = self.request.GET.get('category', '')
+        return context
 
 class DetailView(generic.DetailView):
     model = Question

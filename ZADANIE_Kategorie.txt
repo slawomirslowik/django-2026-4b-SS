@@ -1,0 +1,201 @@
+================================================================================
+ZADANIE DLA UCZNIÓW: Dodanie kategorii do aplikacji Polls
+================================================================================
+
+CEL ZADANIA
+-----------
+Dodaj system kategorii do aplikacji ankiet, umożliwiający przypisanie pytań 
+do kategorii oraz filtrowanie pytań według wybranej kategorii.
+
+================================================================================
+KROK 1: Stworzenie modelu Category
+================================================================================
+
+Plik: polls/models.py
+
+Dodaj nowy model Category na początku pliku (przed klasą Question):
+
+```python
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Categories"
+    
+    def __str__(self):
+        return self.name
+```
+
+Następnie zmodyfikuj model Question, dodając pole categories:
+
+```python
+class Question(models.Model):
+    question_text = models.CharField(max_length=200)
+    pub_date = models.DateTimeField("date published")
+    categories = models.ManyToManyField(Category, related_name='questions', blank=True)
+    
+    def __str__(self):
+        return self.question_text
+    
+    def was_published_recently(self):
+        return self.pub_date >= timezone.now() - datetime.timedelta(days=1)
+```
+
+================================================================================
+KROK 2: Migracja bazy danych
+================================================================================
+
+Wykonaj w terminalu:
+
+```powershell
+py manage.py makemigrations
+py manage.py migrate
+```
+
+================================================================================
+KROK 3: Rejestracja w panelu admina
+================================================================================
+
+Plik: polls/admin.py
+
+Zarejestruj model Category:
+
+```python
+from django.contrib import admin
+from .models import Question, Choice, Category
+
+admin.site.register(Category)
+admin.site.register(Question)
+admin.site.register(Choice)
+```
+
+================================================================================
+KROK 4: Modyfikacja widoku IndexView
+================================================================================
+
+Plik: polls/views.py
+
+Zmodyfikuj import i klasę IndexView, aby obsługiwała filtrowanie:
+
+```python
+from .models import Choice, Question, Category
+
+class IndexView(generic.ListView):
+    template_name = "polls/index.html"
+    context_object_name = "latest_question_list"
+
+    def get_queryset(self):
+        """Return questions, optionally filtered by category."""
+        queryset = Question.objects.order_by("-pub_date")[:5]
+        
+        category_id = self.request.GET.get('category')
+        if category_id:
+            queryset = Question.objects.filter(
+                categories__id=category_id
+            ).order_by("-pub_date")[:5]
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        context['selected_category'] = self.request.GET.get('category', '')
+        return context
+```
+
+================================================================================
+KROK 5: Modyfikacja szablonu index.html
+================================================================================
+
+Plik: polls/templates/polls/index.html
+
+Dodaj formularz wyboru kategorii:
+
+```html
+<h1>Polls</h1>
+
+<!-- Formularz filtrowania kategorii -->
+<form method="get" action="{% url 'polls:index' %}">
+    <label for="category">Filter by category:</label>
+    <select name="category" id="category" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+            <option value="{{ category.id }}" 
+                {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+        {% endfor %}
+    </select>
+    <noscript><button type="submit">Filter</button></noscript>
+</form>
+
+<br>
+
+{% if latest_question_list %}
+    <ul>
+    {% for question in latest_question_list %}
+        <li>
+            <a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a>
+            {% if question.categories.all %}
+                <small>
+                    ({% for cat in question.categories.all %}{{ cat.name }}{% if not forloop.last %}, {% endif %}{% endfor %})
+                </small>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No polls are available.</p>
+{% endif %}
+```
+
+================================================================================
+KROK 6: Testowanie
+================================================================================
+
+1. Uruchom serwer: 
+   py manage.py runserver 8080
+
+2. Przejdź do panelu admina: 
+   http://localhost:8080/admin
+
+3. Dodaj kilka kategorii (np. "Sport", "Technologia", "Rozrywka")
+
+4. Przypisz pytaniom kategorie
+
+5. Sprawdź działanie filtra na stronie głównej
+
+================================================================================
+ZADANIA DODATKOWE DLA UCZNIÓW
+================================================================================
+
+1. Dodaj licznik pytań dla każdej kategorii w selekcie
+   Wskazówka: użyj annotate() i Count()
+
+2. Dodaj CSS, aby kategorie miały różne kolory
+   Wskazówka: dodaj pole color do modelu Category
+
+3. Stwórz widok pokazujący wszystkie kategorie z liczbą pytań
+   Wskazówka: nowy URL /polls/categories/
+
+4. Dodaj paginację dla pytań (więcej niż 5 pytań na stronie)
+   Wskazówka: użyj paginate_by w IndexView
+
+================================================================================
+PODSUMOWANIE ZMIAN
+================================================================================
+
+Pliki do modyfikacji:
+- polls/models.py          (dodanie modelu Category, modyfikacja Question)
+- polls/admin.py           (rejestracja Category)
+- polls/views.py           (dodanie filtrowania i kontekstu)
+- polls/templates/polls/index.html  (dodanie formularza select)
+
+Nowe polecenia:
+- py manage.py makemigrations
+- py manage.py migrate
+
+================================================================================
+Powodzenia! 
+================================================================================

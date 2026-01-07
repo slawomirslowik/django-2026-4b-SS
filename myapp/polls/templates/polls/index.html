@@ -1,7 +1,33 @@
+<h1>Polls</h1>
+
+<!-- Formularz filtrowania kategorii -->
+<form method="get" action="{% url 'polls:index' %}">
+    <label for="category">Filter by category:</label>
+    <select name="category" id="category" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+            <option value="{{ category.id }}" 
+                {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+        {% endfor %}
+    </select>
+    <noscript><button type="submit">Filter</button></noscript>
+</form>
+
+<br>
+
 {% if latest_question_list %}
     <ul>
     {% for question in latest_question_list %}
-        <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
+        <li>
+            <a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a>
+            {% if question.categories.all %}
+                <small>
+                    ({% for cat in question.categories.all %}{{ cat.name }}{% if not forloop.last %}, {% endif %}{% endfor %})
+                </small>
+            {% endif %}
+        </li>
     {% endfor %}
     </ul>
 {% else %}
